@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simple Price Calculator</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 1rem;
+    max-width: 600px;
+    margin: auto;
+    background: #f9f9f9;
+    color: #222;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  label {
+    display: block;
+    margin: 0.6rem 0 0.3rem;
+    font-weight: bold;
+  }
+  select, input[type=number] {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  .result {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 1.2rem;
+    text-align: center;
+  }
+  .currency-toggle {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+    gap: 1rem;
+    align-items: center;
+  }
+  .currency-toggle label {
+    font-weight: normal;
+    cursor: pointer;
+  }
+  @media (max-width: 400px) {
+    body {
+      padding: 0.5rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>Simple Price Calculator</h1>
+
+<form id="calcForm" onsubmit="return false;">
+  <label for="serviceType">Select Service Type:</label>
+  <select id="serviceType" required>
+    <option value="">-- Choose Service --</option>
+    <option value="graphic">Graphic Design</option>
+    <option value="uiux">UI/UX & Web Design</option>
+    <option value="webdev">Web Development</option>
+    <option value="branding">Branding & Identity</option>
+    <option value="socialmedia">Social Media Management</option>
+    <option value="contentwriting">Content Writing & Copywriting</option>
+    <option value="video">Video & Motion</option>
+    <option value="seo">SEO & Tech Services</option>
+  </select>
+
+  <label for="subService" style="margin-top:1rem;">Select Sub-Service:</label>
+  <select id="subService" required disabled>
+    <option value="">-- Select Service Type First --</option>
+  </select>
+
+  <label for="quantity" style="margin-top:1rem;">Enter Hours / Quantity:</label>
+  <input type="number" id="quantity" min="0" value="0" required disabled />
+
+  <div class="currency-toggle">
+    <label>
+      <input type="radio" name="currency" value="usd" checked /> USD ($)
+    </label>
+    <label>
+      <input type="radio" name="currency" value="inr" /> INR (₹)
+    </label>
+  </div>
+
+  <div class="result" id="priceDisplay" style="display:none;">
+    Total Price: <span id="totalPrice">$0.00</span>
+  </div>
+</form>
+
+<script>
+  const data = {
+    graphic: [
+      { name: "Logo Design", rate: 20, rateType: "hourly" },
+      { name: "Social Media Creatives", rate: 15, rateType: "hourly" },
+      { name: "Poster / Flyer Design", rate: 18, rateType: "hourly" },
+      { name: "Business Cards", rate: 15, rateType: "hourly" },
+      { name: "Banner Ads (Static)", rate: 12, rateType: "hourly" }
+    ],
+    uiux: [
+      { name: "Website UI Design", rate: 18, rateType: "hourly" },
+      { name: "Mobile App UI", rate: 20, rateType: "hourly" },
+      { name: "UX Wireframes", rate: 15, rateType: "hourly" },
+      { name: "Web Redesign", rate: 20, rateType: "hourly" },
+      { name: "Dashboard Design", rate: 25, rateType: "hourly" }
+    ],
+    webdev: [
+      { name: "Static Website", rate: 18, rateType: "hourly" },
+      { name: "WordPress Dev", rate: 15, rateType: "hourly" },
+      { name: "Landing Page", rate: 20, rateType: "hourly" },
+      { name: "Portfolio Sites", rate: 22, rateType: "hourly" },
+      { name: "Website Maintenance", rate: 10, rateType: "hourly" }
+    ],
+    branding: [
+      { name: "Brand Kit Design", rate: 25, rateType: "hourly" },
+      { name: "Logo + Branding Bundle", rate: 35, rateType: "hourly" },
+      { name: "Presentation Templates", rate: 20, rateType: "hourly" }
+    ],
+    socialmedia: [
+      { name: "Post Planning & Calendar", rate: 15, rateType: "hourly" },
+      { name: "Caption + Hashtag Writing", rate: 10, rateType: "hourly" },
+      { name: "Engagement Management", rate: 12, rateType: "hourly" },
+      { name: "Analytics & Growth Strategy", rate: 25, rateType: "fixed" }
+    ],
+    contentwriting: [
+      { name: "Blog Posts (SEO Optimized)", rate: 25, rateType: "fixed" },
+      { name: "Website Copy", rate: 18, rateType: "hourly" },
+      { name: "Product Descriptions", rate: 15, rateType: "hourly" },
+      { name: "Email Newsletter Writing", rate: 20, rateType: "fixed" }
+    ],
+    video: [
+      { name: "Animated Reels", rate: 30, rateType: "fixed" },
+      { name: "Basic Editing (Cuts & Music)", rate: 20, rateType: "hourly" },
+      { name: "Storyboard + Scripting", rate: 20, rateType: "hourly" }
+    ],
+    seo: [
+      { name: "Website Audit", rate: 30, rateType: "fixed" },
+      { name: "Keyword Research", rate: 20, rateType: "fixed" },
+      { name: "Technical SEO Fixes", rate: 20, rateType: "hourly" },
+      { name: "Sitemap & Robots Setup", rate: 15, rateType: "fixed" }
+    ]
+  };
+
+  const USD_TO_INR = 83;
+
+  const serviceType = document.getElementById("serviceType");
+  const subService = document.getElementById("subService");
+  const quantity = document.getElementById("quantity");
+  const priceDisplay = document.getElementById("priceDisplay");
+  const totalPrice = document.getElementById("totalPrice");
+  const currencyRadios = document.querySelectorAll('input[name="currency"]');
+
+  serviceType.addEventListener("change", () => {
+    const selected = serviceType.value;
+    subService.innerHTML = "";
+    quantity.value = 0;
+    priceDisplay.style.display = "none";
+    quantity.disabled = true;
+    if (!selected || !data[selected]) {
+      subService.disabled = true;
+      subService.innerHTML = '<option value="">-- Select Service Type First --</option>';
+      return;
+    }
+    subService.disabled = false;
+    let options = '<option value="">-- Choose Sub-Service --</option>';
+    data[selected].forEach((s, i) => {
+      options += `<option value="${i}">${s.name} (${s.rateType === "hourly" ? "$"+s.rate+"/hr" : "$"+s.rate+" fixed"})</option>`;
+    });
+    subService.innerHTML = options;
+  });
+
+  subService.addEventListener("change", () => {
+    const svc = serviceType.value;
+    const idx = subService.value;
+    priceDisplay.style.display = "none";
+    quantity.value = 0;
+    if (svc && idx !== "") {
+      quantity.disabled = false;
+      calculatePrice();
+    } else {
+      quantity.disabled = true;
+    }
+  });
+
+  quantity.addEventListener("input", () => {
+    if (quantity.value < 0) quantity.value = 0;
+    calculatePrice();
+  });
+
+  currencyRadios.forEach(radio => {
+    radio.addEventListener("change", () => {
+      calculatePrice();
+    });
+  });
+
+  function calculatePrice() {
+    const svc = serviceType.value;
+    const idx = subService.value;
+    let qty = Number(quantity.value);
+    if (qty < 0) qty = 0;
+    if (svc === "" || idx === "") {
+      priceDisplay.style.display = "none";
+      return;
+    }
+    const selectedSub = data[svc][idx];
+    let total = 0;
+    if (selectedSub.rateType === "hourly") {
+      total = selectedSub.rate * qty;
+    } else {
+      total = selectedSub.rate; // fixed price ignores qty
+    }
+
+    const currency = document.querySelector('input[name="currency"]:checked').value;
+    let displayPrice = "";
+    if (currency === "usd") {
+      displayPrice = "$" + total.toFixed(2);
+    } else {
+      displayPrice = "₹" + (total * USD_TO_INR).toFixed(0);
+    }
+
+    if (qty === 0) {
+      priceDisplay.style.display = "none";
+    } else {
+      totalPrice.textContent = displayPrice;
+      priceDisplay.style.display = "block";
+    }
+  }
+</script>
+
+</body>
+</html>
